@@ -1065,6 +1065,7 @@
         const clickSoundSrc = 'Audios/Click.mp3';
         const bloqueoSoundSrc = 'Audios/Bloqueo.mp3';
         const hoverPilarSoundSrc = 'Audios/PilaresH.mp3';
+        const hoverBotonSoundSrc = 'Audios/BotonesH.mp3';
 
         function reproducirSonido(src, volumen = 0.35) {
             try {
@@ -1091,6 +1092,33 @@
                 reproducirSonido(clickSoundSrc, 0.35);
             }
         }, true);
+
+        // Hover en todos los botones
+        let ultimoBotonHover = null;
+
+        document.addEventListener('mouseover', (e) => {
+            const boton = e.target.closest('button');
+            if (!boton) return;
+            if (boton.contains(e.relatedTarget)) return;
+            if (boton === ultimoBotonHover) return;
+
+            const esBloqueado =
+                boton.classList.contains('bloqueado') ||
+                boton.closest('.pilar-bloqueado') !== null;
+
+            if (esBloqueado) return;
+
+            ultimoBotonHover = boton;
+            reproducirSonido(hoverBotonSoundSrc, 0.25);
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            const boton = e.target.closest('button');
+            if (!boton) return;
+            if (!boton.contains(e.relatedTarget)) {
+                ultimoBotonHover = null;
+            }
+        });
 
         // Hover en los pilares
         secciones.forEach((pilar) => {
@@ -1172,7 +1200,7 @@
                 <img src="Imagenes/flecha.png" alt="Retraer" class="img-flecha" />
             </button>
             <h3 class="titulo-pilar" style="color: #ff1493; margin-top: 10px; margin-bottom: 20px;">Puzzle 3</h3>
-            <a href="Audios/k278.mp3" download="k278.mp3" style="display:block; margin-bottom: 18px; text-decoration:none;">
+            <a href="Audios/k278.mp3" download="Audios/k278.mp3" style="display:block; margin-bottom: 18px; text-decoration:none;">
                 <button type="button" class="btn-entrar" style="width:auto; padding:10px 20px; font-size:0.8rem;">Descargar audio</button>
             </a>
             <div style="width: 80%; max-width: 300px; display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 25px;">
