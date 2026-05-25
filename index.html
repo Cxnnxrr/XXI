@@ -32,6 +32,55 @@
             overflow: hidden;
             position: relative;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: none;
+        }
+
+        /* Ocultar cursor nativo en elementos interactivos */
+        button,
+        a,
+        input,
+        textarea,
+        select,
+        [role="button"] {
+            cursor: none !important;
+        }
+
+        /* Cursor personalizado */
+        .custom-cursor {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            pointer-events: none;
+            z-index: 99999;
+            background: url('Cursores/Normal.png') center center / contain no-repeat;
+            transform: translate(-100px, -100px);
+            will-change: transform, background-image;
+            transition: opacity 0.12s ease;
+        }
+
+        .custom-cursor.oculto {
+            opacity: 0;
+        }
+
+        @media (pointer: coarse) {
+            body {
+                cursor: auto;
+            }
+
+            button,
+            a,
+            input,
+            textarea,
+            select,
+            [role="button"] {
+                cursor: auto !important;
+            }
+
+            .custom-cursor {
+                display: none;
+            }
         }
 
         /* --- CONTENEDOR GENERAL QUE SE SACUDE --- */
@@ -53,7 +102,7 @@
             padding: 0;
             border: none;
             background: transparent;
-            cursor: pointer;
+            cursor: none;
             z-index: 70;
             display: flex;
             justify-content: center;
@@ -203,7 +252,7 @@
             font-weight: 600;
             letter-spacing: 1px;
             border-radius: 30px;
-            cursor: pointer;
+            cursor: none;
             z-index: 50;
             opacity: 0;
             pointer-events: none;
@@ -236,7 +285,7 @@
             font-weight: 600;
             letter-spacing: 1px;
             border-radius: 30px;
-            cursor: pointer;
+            cursor: none;
             transition: background-color 0.4s ease, color 0.4s ease, opacity 0.5s ease, transform 0.5s ease;
             opacity: 0;
             transform: translateY(10px) scale(0.98);
@@ -327,7 +376,6 @@
         .pilar-bloqueado .btn-entrar {
             border-color: #555555;
             background-color: #000000;
-            cursor: not-allowed;
         }
 
         /* --- RECUADRO DEL PUZZLE CORREDIZO --- */
@@ -372,7 +420,7 @@
             border-radius: 50%;
             width: 54px;
             height: 54px;
-            cursor: pointer;
+            cursor: none;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -428,7 +476,7 @@
             border-radius: 50%;
             width: 40px;
             height: 40px;
-            cursor: pointer;
+            cursor: none;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -487,7 +535,7 @@
             font-weight: 600;
             letter-spacing: 1px;
             border-radius: 30px;
-            cursor: pointer;
+            cursor: none;
             text-align: center;
             margin-top: auto;
             display: flex;
@@ -505,6 +553,11 @@
             height: 20px;
             object-fit: contain;
             filter: invert(0.4);
+        }
+
+        /* Solo botones bloqueados */
+        .btn-entrar.bloqueado {
+            cursor: none !important;
         }
 
         /* --- TEXTOS PUZZLE --- */
@@ -552,6 +605,7 @@
             font-size: 1rem;
             outline: none;
             transition: border-color 0.3s, box-shadow 0.3s;
+            cursor: url('Cursores/Escribir.png') 16 16, text;
         }
 
         .input-puzzle:focus {
@@ -631,6 +685,8 @@
     </style>
 </head>
 <body>
+
+    <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
 
     <div class="particulas-layer" id="particulasLayer"></div>
 
@@ -797,11 +853,104 @@
         const secciones = document.querySelectorAll('.seccion-card');
         const particulasLayer = document.getElementById('particulasLayer');
         const particulasLayerFinal = document.getElementById('particulasLayerFinal');
+        const customCursor = document.getElementById('customCursor');
 
         const btnFlechaFinal = document.getElementById('btnFlechaFinal');
         const btnFlechaRegresar = document.getElementById('btnFlechaRegresar');
 
         const haloNeon = document.getElementById('haloNeon');
+
+        const CURSORES = {
+            normal: 'Cursores/Normal.png',
+            apuntar: 'Cursores/Apuntar.png',
+            click: 'Cursores/Click.png',
+            escribir: 'Cursores/Escribir.png',
+            bloqueo: 'Cursores/Bloqueo.png'
+        };
+
+        let cursorState = 'normal';
+        let mouseDown = false;
+        let cursorVisible = false;
+        let cursorX = -100;
+        let cursorY = -100;
+
+        function setCursorState(state) {
+            if (cursorState === state) return;
+            cursorState = state;
+            customCursor.style.backgroundImage = `url('${CURSORES[state]}')`;
+        }
+
+        function getCursorState(target) {
+            if (!target) return 'normal';
+
+            const bloqueado = target.closest('.btn-entrar.bloqueado');
+            if (bloqueado) return 'bloqueo';
+
+            if (target.closest('input, textarea, [contenteditable="true"]')) {
+                return 'escribir';
+            }
+
+            const interactivo = target.closest(
+                'button:not(.bloqueado), a, [role="button"], .icono-social'
+            );
+
+            if (interactivo) {
+                return mouseDown ? 'click' : 'apuntar';
+            }
+
+            return 'normal';
+        }
+
+        function updateCustomCursorPosition(x, y) {
+            cursorX = x;
+            cursorY = y;
+            customCursor.style.transform = `translate(${cursorX - 16}px, ${cursorY - 16}px)`;
+        }
+
+        function refreshCursorFromTarget(target) {
+            setCursorState(getCursorState(target));
+        }
+
+        if (window.matchMedia('(pointer: fine)').matches) {
+            document.addEventListener('mousemove', (e) => {
+                cursorVisible = true;
+                customCursor.classList.remove('oculto');
+                updateCustomCursorPosition(e.clientX, e.clientY);
+                refreshCursorFromTarget(e.target);
+            });
+
+            document.addEventListener('mouseenter', () => {
+                cursorVisible = true;
+                customCursor.classList.remove('oculto');
+            });
+
+            document.addEventListener('mouseleave', () => {
+                cursorVisible = false;
+                customCursor.classList.add('oculto');
+            });
+
+            document.addEventListener('mousedown', (e) => {
+                mouseDown = true;
+                updateCustomCursorPosition(e.clientX, e.clientY);
+                const estado = getCursorState(e.target);
+                setCursorState(estado === 'apuntar' ? 'click' : estado);
+            });
+
+            document.addEventListener('mouseup', (e) => {
+                mouseDown = false;
+                refreshCursorFromTarget(e.target);
+            });
+
+            window.addEventListener('blur', () => {
+                customCursor.classList.add('oculto');
+            });
+
+            window.addEventListener('focus', () => {
+                if (cursorVisible) {
+                    customCursor.classList.remove('oculto');
+                }
+            });
+        }
 
         // ==============================
         // MÚSICA
@@ -875,7 +1024,6 @@
                 try {
                     audio.currentTime = 0;
                 } catch (error) {
-                    // Silencioso
                 }
             }
 
@@ -884,7 +1032,6 @@
             try {
                 await audio.play();
             } catch (error) {
-                // Silencioso si el navegador bloquea el audio
             }
 
             if (!musicaSilenciada && !musicaOcultaPorSistema) {
@@ -902,7 +1049,6 @@
             try {
                 audioDestino.currentTime = 0;
             } catch (error) {
-                // Silencioso
             }
 
             audioDestino.volume = 0;
@@ -910,7 +1056,6 @@
             try {
                 await audioDestino.play();
             } catch (error) {
-                // Silencioso
             }
 
             const origenEstabaSonando = audioOrigen && !audioOrigen.paused;
@@ -921,7 +1066,6 @@
                         audioOrigen.pause();
                         audioOrigen.currentTime = 0;
                     } catch (error) {
-                        // Silencioso
                     }
                 });
             }
@@ -1021,7 +1165,6 @@
                 audioEl.volume = volumen;
                 audioEl.play().catch(() => {});
             } catch (error) {
-                // Silencioso
             }
         }
 
@@ -1073,7 +1216,6 @@
                 sonido.volume = volumen;
                 sonido.play().catch(() => {});
             } catch (error) {
-                // Silencioso si el navegador bloquea el audio
             }
         }
 
@@ -1084,7 +1226,7 @@
 
             const esBloqueado =
                 boton.classList.contains('bloqueado') ||
-                boton.closest('.pilar-bloqueado') !== null;
+                boton.closest('.btn-entrar.bloqueado') !== null;
 
             if (esBloqueado) {
                 reproducirSonido(bloqueoSoundSrc, 0.45);
@@ -1104,7 +1246,7 @@
 
             const esBloqueado =
                 boton.classList.contains('bloqueado') ||
-                boton.closest('.pilar-bloqueado') !== null;
+                boton.closest('.btn-entrar.bloqueado') !== null;
 
             if (esBloqueado) return;
 
